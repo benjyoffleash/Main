@@ -1,8 +1,9 @@
-import React, {useState, useEffect, useCallback} from 'react';
+import React, {useEffect, useCallback} from 'react';
 import {View, Text, TouchableOpacity, ScrollView, StyleSheet} from 'react-native';
 import {useNavigation, useRoute, RouteProp} from '@react-navigation/native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {AudioPlayerBar} from '../components/AudioPlayerBar';
+import {useTrackPlayer} from '../hooks/useTrackPlayer';
 import {MeditateStackParamList} from '../types';
 import {colors, spacing, typography, borderRadius} from '../utils/theme';
 
@@ -13,28 +14,16 @@ export function MeditationPlayerScreen() {
   const route = useRoute<Route>();
   const {meditation} = route.params;
 
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [currentTime, setCurrentTime] = useState(0);
+  const {isPlaying, position, duration, playTrack, togglePlayPause, seekBy} =
+    useTrackPlayer();
 
   useEffect(() => {
-    let interval: ReturnType<typeof setInterval>;
-    if (isPlaying && currentTime < meditation.duration) {
-      interval = setInterval(() => {
-        setCurrentTime(prev => Math.min(prev + 1, meditation.duration));
-      }, 1000);
-    }
-    return () => clearInterval(interval);
-  }, [isPlaying, currentTime, meditation.duration]);
+    playTrack(meditation);
+  }, [meditation, playTrack]);
 
-  const handlePlayPause = useCallback(() => setIsPlaying(p => !p), []);
-  const handleSeekBackward = useCallback(
-    () => setCurrentTime(t => Math.max(0, t - 15)),
-    [],
-  );
-  const handleSeekForward = useCallback(
-    () => setCurrentTime(t => Math.min(meditation.duration, t + 15)),
-    [meditation.duration],
-  );
+  const handlePlayPause = useCallback(() => togglePlayPause(), [togglePlayPause]);
+  const handleSeekBackward = useCallback(() => seekBy(-15), [seekBy]);
+  const handleSeekForward = useCallback(() => seekBy(15), [seekBy]);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -77,8 +66,8 @@ export function MeditationPlayerScreen() {
       <AudioPlayerBar
         title={meditation.title}
         isPlaying={isPlaying}
-        currentTime={currentTime}
-        duration={meditation.duration}
+        currentTime={position}
+        duration={duration || meditation.duration}
         onPlayPause={handlePlayPause}
         onSeekBackward={handleSeekBackward}
         onSeekForward={handleSeekForward}

@@ -1,8 +1,9 @@
-import React, {useState, useEffect, useCallback} from 'react';
+import React, {useEffect, useCallback} from 'react';
 import {View, Text, TouchableOpacity, ScrollView, StyleSheet} from 'react-native';
 import {useNavigation, useRoute, RouteProp} from '@react-navigation/native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {AudioPlayerBar} from '../components/AudioPlayerBar';
+import {useTrackPlayer} from '../hooks/useTrackPlayer';
 import {LearnStackParamList} from '../types';
 import {colors, spacing, typography, borderRadius} from '../utils/theme';
 
@@ -13,29 +14,16 @@ export function EssayPlayerScreen() {
   const route = useRoute<Route>();
   const {essay} = route.params;
 
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [currentTime, setCurrentTime] = useState(0);
+  const {isPlaying, position, duration, playTrack, togglePlayPause, seekBy} =
+    useTrackPlayer();
 
-  // Simulate playback progress
   useEffect(() => {
-    let interval: ReturnType<typeof setInterval>;
-    if (isPlaying && currentTime < essay.duration) {
-      interval = setInterval(() => {
-        setCurrentTime(prev => Math.min(prev + 1, essay.duration));
-      }, 1000);
-    }
-    return () => clearInterval(interval);
-  }, [isPlaying, currentTime, essay.duration]);
+    playTrack(essay);
+  }, [essay, playTrack]);
 
-  const handlePlayPause = useCallback(() => setIsPlaying(p => !p), []);
-  const handleSeekBackward = useCallback(
-    () => setCurrentTime(t => Math.max(0, t - 15)),
-    [],
-  );
-  const handleSeekForward = useCallback(
-    () => setCurrentTime(t => Math.min(essay.duration, t + 15)),
-    [essay.duration],
-  );
+  const handlePlayPause = useCallback(() => togglePlayPause(), [togglePlayPause]);
+  const handleSeekBackward = useCallback(() => seekBy(-15), [seekBy]);
+  const handleSeekForward = useCallback(() => seekBy(15), [seekBy]);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -72,8 +60,8 @@ export function EssayPlayerScreen() {
       <AudioPlayerBar
         title={essay.title}
         isPlaying={isPlaying}
-        currentTime={currentTime}
-        duration={essay.duration}
+        currentTime={position}
+        duration={duration || essay.duration}
         onPlayPause={handlePlayPause}
         onSeekBackward={handleSeekBackward}
         onSeekForward={handleSeekForward}
