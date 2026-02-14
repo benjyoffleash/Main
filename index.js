@@ -1,8 +1,4 @@
-import {AppRegistry} from 'react-native';
-import TrackPlayer from 'react-native-track-player';
+import {registerRootComponent} from 'expo';
 import App from './src/App';
 
-AppRegistry.registerComponent('IFSMeditationApp', () => App);
-TrackPlayer.registerPlaybackService(
-  () => require('./src/services/trackPlayerService').default,
-);
+registerRootComponent(App);

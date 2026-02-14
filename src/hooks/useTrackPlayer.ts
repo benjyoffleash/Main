@@ -1,83 +1,66 @@
 import {useCallback, useEffect, useRef, useState} from 'react';
-import TrackPlayer, {
-  State,
-  useProgress,
-  usePlaybackState,
-  Capability,
-} from 'react-native-track-player';
+import {Audio} from 'expo-av';
 import {AudioTrack} from '../types';
 import {getAudioUrl} from '../services/supabase';
 
-let playerReady = false;
-
-async function setup() {
-  if (playerReady) return;
-  await TrackPlayer.setupPlayer();
-  await TrackPlayer.updateOptions({
-    capabilities: [
-      Capability.Play,
-      Capability.Pause,
-      Capability.SeekTo,
-      Capability.Stop,
-    ],
-  });
-  playerReady = true;
-}
-
 export function useTrackPlayer() {
-  const [isReady, setIsReady] = useState(playerReady);
-  const playbackState = usePlaybackState();
-  const {position, duration} = useProgress(250);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [position, setPosition] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [isReady, setIsReady] = useState(false);
+  const soundRef = useRef<Audio.Sound | null>(null);
   const currentTrackId = useRef<string | null>(null);
 
   useEffect(() => {
-    if (!playerReady) {
-      setup().then(() => setIsReady(true));
-    }
-  }, []);
+    Audio.setAudioModeAsync({
+      playsInSilentModeIOS: true,
+      staysActiveInBackground: true,
+    }).then(() => setIsReady(true));
 
-  // Stop playback on unmount
-  useEffect(() => {
     return () => {
-      TrackPlayer.stop();
-      TrackPlayer.reset();
-      currentTrackId.current = null;
+      if (soundRef.current) {
+        soundRef.current.unloadAsync();
+      }
     };
   }, []);
 
-  const isPlaying = playbackState.state === State.Playing;
+  const playTrack = useCallback(async (track: AudioTrack) => {
+    if (currentTrackId.current === track.id && soundRef.current) return;
 
-  const playTrack = useCallback(
-    async (track: AudioTrack) => {
-      if (!playerReady) await setup();
-      if (currentTrackId.current === track.id) return;
+    if (soundRef.current) {
+      await soundRef.current.unloadAsync();
+    }
 
-      await TrackPlayer.reset();
-      const url = getAudioUrl(track.audioUrl);
-      await TrackPlayer.add({
-        id: track.id,
-        url,
-        title: track.title,
-        duration: track.duration,
-      });
-      await TrackPlayer.play();
-      currentTrackId.current = track.id;
-    },
-    [],
-  );
+    const url = getAudioUrl(track.audioUrl);
+    const {sound} = await Audio.Sound.createAsync(
+      {uri: url},
+      {shouldPlay: true},
+      status => {
+        if (status.isLoaded) {
+          setPosition(status.positionMillis / 1000);
+          setDuration((status.durationMillis ?? 0) / 1000);
+          setIsPlaying(status.isPlaying);
+        }
+      },
+    );
+    soundRef.current = sound;
+    currentTrackId.current = track.id;
+  }, []);
 
   const togglePlayPause = useCallback(async () => {
+    if (!soundRef.current) return;
     if (isPlaying) {
-      await TrackPlayer.pause();
+      await soundRef.current.pauseAsync();
     } else {
-      await TrackPlayer.play();
+      await soundRef.current.playAsync();
     }
   }, [isPlaying]);
 
   const seekBy = useCallback(
     async (seconds: number) => {
+      if (!soundRef.current) return;
       const target = Math.max(0, Math.min(position + seconds, duration));
-      await TrackPlayer.seekTo(target);
+      await soundRef.current.setPositionAsync(target * 1000);
     },
     [position, duration],
   );
