@@ -1,9 +1,8 @@
 import {useEffect, useState} from 'react';
-import {FirebaseAuthTypes} from '@react-native-firebase/auth';
-import {onAuthStateChanged} from '../services/firebase';
+import {onAuthStateChanged, SupabaseUser} from '../services/supabase';
 
 export function useAuth() {
-  const [user, setUser] = useState<FirebaseAuthTypes.User | null>(null);
+  const [user, setUser] = useState<SupabaseUser>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {

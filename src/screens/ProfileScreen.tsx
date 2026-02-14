@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {useAuth} from '../hooks/useAuth';
-import {signIn, signUp, signOut} from '../services/firebase';
+import {signIn, signUp, signOut} from '../services/supabase';
 import {colors, spacing, typography, borderRadius} from '../utils/theme';
 
 export function ProfileScreen() {
@@ -40,12 +40,12 @@ export function ProfileScreen() {
         <ScrollView contentContainerStyle={styles.profileContent}>
           <View style={styles.avatarCircle}>
             <Text style={styles.avatarText}>
-              {(user.displayName || user.email || '?')[0].toUpperCase()}
+              {(user.user_metadata?.display_name || user.email || '?')[0].toUpperCase()}
             </Text>
           </View>
 
           <Text style={styles.nameText}>
-            {user.displayName || 'Meditator'}
+            {user.user_metadata?.display_name || 'Meditator'}
           </Text>
           <Text style={styles.emailText}>{user.email}</Text>
 
