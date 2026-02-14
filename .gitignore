@@ -50,3 +50,4 @@ GoogleService-Info.plist
 
 # Testing
 coverage/
+.expo/
